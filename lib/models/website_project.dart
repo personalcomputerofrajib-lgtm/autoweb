@@ -55,12 +55,16 @@ class WebsiteProject {
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now(),
         pages = pages ?? [],
-        globalSettings = globalSettings ?? {
-          'primaryColor': '#7C3AED',
-          'fontFamily': 'Inter',
-          'siteName': name,
-          'favicon': '',
-        };
+        globalSettings = globalSettings ?? {} {
+    if (this.globalSettings.isEmpty) {
+      this.globalSettings = {
+        'primaryColor': '#7C3AED',
+        'fontFamily': 'Inter',
+        'siteName': this.name,
+        'favicon': '',
+      };
+    }
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,

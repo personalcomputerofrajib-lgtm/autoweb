@@ -232,6 +232,49 @@ class EditorProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void duplicatePage(int pageIndex) {
+    if (_project == null || pageIndex >= _project!.pages.length) return;
+    final original = _project!.pages[pageIndex];
+    final copy = SitePage(
+      name: '${original.name} Copy',
+      backgroundColor: original.backgroundColor,
+      elements: original.elements.map((e) => e.copyWith()).toList(),
+    );
+    _project!.pages.insert(pageIndex + 1, copy);
+    _currentPageIndex = pageIndex + 1;
+    _selectedElementId = null;
+    notifyListeners();
+  }
+
+  void deletePage(int pageIndex) {
+    if (_project == null || _project!.pages.length <= 1) return;
+    _project!.pages.removeAt(pageIndex);
+    if (_currentPageIndex >= _project!.pages.length) {
+      _currentPageIndex = _project!.pages.length - 1;
+    }
+    _selectedElementId = null;
+    _showPropertyPanel = false;
+    notifyListeners();
+  }
+
+  void renamePage(int pageIndex, String newName) {
+    if (_project == null || pageIndex >= _project!.pages.length) return;
+    _project!.pages[pageIndex].name = newName;
+    notifyListeners();
+  }
+
+  void updateGlobalSetting(String key, dynamic value) {
+    if (_project == null) return;
+    _project!.globalSettings[key] = value;
+    notifyListeners();
+  }
+
+  void updatePageBackground(String color) {
+    if (currentPage == null) return;
+    currentPage!.backgroundColor = color;
+    notifyListeners();
+  }
+
   bool get canUndo => _undoStack.isNotEmpty;
   bool get canRedo => _redoStack.isNotEmpty;
 }
