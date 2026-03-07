@@ -238,10 +238,19 @@ class _CategoryPickerScreenState extends State<CategoryPickerScreen> {
       return;
     }
     setState(() => _creating = true);
-    final project = await context.read<ProjectProvider>().createProject(name, _selectedCategory!);
-    if (!mounted) return;
-    context.read<EditorProvider>().loadProject(project);
-    Navigator.pushReplacementNamed(context, '/editor');
+    try {
+      final project = await context.read<ProjectProvider>().createProject(name, _selectedCategory!);
+      if (!mounted) return;
+      context.read<EditorProvider>().loadProject(project);
+      Navigator.pushReplacementNamed(context, '/editor');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to create site: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _creating = false);
+    }
   }
 }
 

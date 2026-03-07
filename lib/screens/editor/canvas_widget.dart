@@ -77,13 +77,12 @@ class _CanvasWidgetState extends State<CanvasWidget> {
   }
 
   double _calculateTotalHeight(elements) {
-    if (elements.isEmpty) return 600;
-    double maxY = 0;
+    double maxY = 800; // minimum canvas height
     for (final el in elements) {
-      final bottom = el.y + el.height;
+      final bottom = (el.y as double) + (el.height as double);
       if (bottom > maxY) maxY = bottom;
     }
-    return maxY;
+    return maxY + 200;
   }
 
   Color _parseColor(String hex) {

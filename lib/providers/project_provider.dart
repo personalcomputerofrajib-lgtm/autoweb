@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show ChangeNotifier, compute;
 import '../models/website_project.dart';
 import '../services/project_service.dart';
 import '../templates/ecommerce_template.dart';
@@ -29,30 +29,8 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   Future<WebsiteProject> createProject(String name, String category) async {
-    WebsiteProject project;
-    switch (category) {
-      case 'E-Commerce':
-        project = EcommerceTemplate.create(name);
-        break;
-      case 'Portfolio':
-        project = PortfolioTemplate.create(name);
-        break;
-      case 'Blog':
-        project = BlogTemplate.create(name);
-        break;
-      case 'Landing Page':
-        project = LandingPageTemplate.create(name);
-        break;
-      case 'Business':
-        project = BusinessTemplate.create(name);
-        break;
-      case 'Restaurant':
-        project = RestaurantTemplate.create(name);
-        break;
-      default:
-        project = BusinessTemplate.create(name);
-        break;
-    }
+    // Run template creation on a background isolate to avoid freezing the UI
+    final project = await compute(_buildTemplate, {'name': name, 'category': category});
     await _service.saveProject(project);
     _projects.insert(0, project);
     notifyListeners();
@@ -84,4 +62,26 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   Future<void> refresh() => _loadProjects();
+}
+
+/// Top-level function required by compute() — runs in a background isolate.
+WebsiteProject _buildTemplate(Map<String, String> args) {
+  final name = args['name']!;
+  final category = args['category']!;
+  switch (category) {
+    case 'E-Commerce':
+      return EcommerceTemplate.create(name);
+    case 'Portfolio':
+      return PortfolioTemplate.create(name);
+    case 'Blog':
+      return BlogTemplate.create(name);
+    case 'Landing Page':
+      return LandingPageTemplate.create(name);
+    case 'Business':
+      return BusinessTemplate.create(name);
+    case 'Restaurant':
+      return RestaurantTemplate.create(name);
+    default:
+      return BusinessTemplate.create(name);
+  }
 }
