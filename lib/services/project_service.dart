@@ -38,7 +38,7 @@ class ProjectService {
   }
 
   Future<void> saveProject(WebsiteProject project) async {
-    final json = project.toJson();
+    final encodedJson = jsonEncode(project.toJson());
     await _database.insert(
       'projects',
       {
@@ -48,11 +48,33 @@ class ProjectService {
         'createdAt': project.createdAt.toIso8601String(),
         'updatedAt': project.updatedAt.toIso8601String(),
         'thumbnailPath': project.thumbnailPath,
-        'data': jsonEncode(json),
+        'data': encodedJson,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
+
+  /// Use this when you already have a pre-encoded JSON string (e.g. from an isolate)
+  /// to avoid re-encoding on the main thread.
+  Future<void> saveProjectJson({
+    required WebsiteProject project,
+    required String encodedJson,
+  }) async {
+    await _database.insert(
+      'projects',
+      {
+        'id': project.id,
+        'name': project.name,
+        'category': project.category,
+        'createdAt': project.createdAt.toIso8601String(),
+        'updatedAt': project.updatedAt.toIso8601String(),
+        'thumbnailPath': project.thumbnailPath,
+        'data': encodedJson,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
 
   Future<WebsiteProject?> loadProject(String id) async {
     final rows = await _database.query(

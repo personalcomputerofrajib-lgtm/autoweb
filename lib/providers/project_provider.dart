@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart' show ChangeNotifier, compute;
 import '../models/website_project.dart';
 import '../services/project_service.dart';
@@ -29,9 +30,18 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   Future<WebsiteProject> createProject(String name, String category) async {
-    // Run template creation on a background isolate to avoid freezing the UI
-    final project = await compute(_buildTemplate, {'name': name, 'category': category});
-    await _service.saveProject(project);
+    // Run ALL heavy work in a background isolate:
+    // - Template object creation (many UUIDs)
+    // - JSON serialisation (can be 50-200KB for large templates)
+    final result = await compute(_buildAndSerialise, {'name': name, 'category': category});
+    final project = WebsiteProject.fromJson(
+      jsonDecode(result['json']!) as Map<String, dynamic>,
+    );
+    // Save using the pre-encoded JSON — no encoding on the main thread
+    await _service.saveProjectJson(
+      project: project,
+      encodedJson: result['json']!,
+    );
     _projects.insert(0, project);
     notifyListeners();
     return project;
@@ -64,24 +74,35 @@ class ProjectProvider extends ChangeNotifier {
   Future<void> refresh() => _loadProjects();
 }
 
-/// Top-level function required by compute() — runs in a background isolate.
-WebsiteProject _buildTemplate(Map<String, String> args) {
+/// Top-level function — runs in a background isolate via compute().
+/// Builds the template AND serialises it to JSON so the main thread
+/// never has to do any heavy CPU work.
+Map<String, String> _buildAndSerialise(Map<String, String> args) {
   final name = args['name']!;
   final category = args['category']!;
+  final WebsiteProject project;
   switch (category) {
     case 'E-Commerce':
-      return EcommerceTemplate.create(name);
+      project = EcommerceTemplate.create(name);
+      break;
     case 'Portfolio':
-      return PortfolioTemplate.create(name);
+      project = PortfolioTemplate.create(name);
+      break;
     case 'Blog':
-      return BlogTemplate.create(name);
+      project = BlogTemplate.create(name);
+      break;
     case 'Landing Page':
-      return LandingPageTemplate.create(name);
+      project = LandingPageTemplate.create(name);
+      break;
     case 'Business':
-      return BusinessTemplate.create(name);
+      project = BusinessTemplate.create(name);
+      break;
     case 'Restaurant':
-      return RestaurantTemplate.create(name);
+      project = RestaurantTemplate.create(name);
+      break;
     default:
-      return BusinessTemplate.create(name);
+      project = BusinessTemplate.create(name);
   }
+  // Serialise here in the background — never on the main thread
+  return {'json': jsonEncode(project.toJson())};
 }
